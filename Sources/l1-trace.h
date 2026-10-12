@@ -17,7 +17,8 @@ typedef struct l1_trace_data_s {
 } l1_trace_data_t;
 
 enum {
-    T_BUSY = 0,
+    T_INVALID_VALUE = 0,
+    T_BUSY,
     T_GO,
     T_XFER_BUFFER,
     T_EXTERNAL_GO,
@@ -37,7 +38,8 @@ enum {
     T_TX_BURST_START,
     T_TX_BURST_DEFFER,
     T_PHYTIME,
-    T_MBOX
+    T_MBOX,
+    T_PROXY,
 };
 
 typedef struct l1_trace_state_s {
@@ -51,32 +53,33 @@ typedef struct l1_trace_state_s {
 extern void l1_trace_init(void);
 
 #if TRACE_ENABLED
+#define L1_TRACE_CAPACITY (128)
+#define L1_TRACE_CAPACITY_MASK (L1_TRACE_CAPACITY - 1)
+extern l1_trace_data_t events_buffer[L1_TRACE_CAPACITY] _VSPA_VECTOR_ALIGN __attribute__((section(".vcpu_dmem")));
 extern l1_trace_hif_t trace_hif;
-extern l1_trace_data_t *next_event;
+extern uint16_t next_event_index;
 extern void l1_trace_clear(void);
+
 void l1_trace_upload(void);
 
 static inline void l1_trace(uint32_t msg, uint32_t param) {
-    return;
-    next_event->cnt = ccnt_read(); // ccnt_read itself is 5 cycles
-    next_event->msg = msg;
-    next_event->param = param;
-    ++next_event;
+    events_buffer[next_event_index].cnt = ccnt_read();
+    events_buffer[next_event_index].msg = msg;
+    events_buffer[next_event_index].param = param;
+    next_event_index = (next_event_index + 1) & L1_TRACE_CAPACITY_MASK;
 }
 
 static inline void l1_trace_duration(uint64_t startcnt, uint32_t msg) {
-    return;
-    next_event->cnt = startcnt;
-    next_event->msg = msg;
-    next_event->param = ccnt_read() - startcnt;
-    ++next_event;
+    events_buffer[next_event_index].cnt = startcnt;
+    events_buffer[next_event_index].msg = msg;
+    events_buffer[next_event_index].param = ccnt_read() - startcnt;
+    next_event_index = (next_event_index + 1) & L1_TRACE_CAPACITY_MASK;
 }
 
 void push_traces();
 void check_l1_trace_complete(void);
 
 #else
-// static inline void l1_trace_init(void) {}
 static inline void l1_trace_clear(void) {}
 static inline void l1_trace_upload(void) {}
 static inline void l1_trace(uint32_t msg, uint32_t param) {}

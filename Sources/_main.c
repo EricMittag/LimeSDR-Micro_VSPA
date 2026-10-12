@@ -205,7 +205,7 @@ uint64_t HandleCommand(uint64_t msg64) {
         return (MAKEDWORD(0, lime_Result_Success));
     }
     case MBOX_OPC_TRACE_RESET: {
-        l1_trace_init();
+        l1_trace_clear();
         TRACE_EVENT(T_TRACE_PUSH, DEFAULT_THREAD_ID, 0);
         return (MAKEDWORD(0, lime_Result_Success));
     }
@@ -280,7 +280,7 @@ void ProcessTxDMA(void) {
 
 // gets called by event triggers
 __attribute__((noreturn)) void main(void) {
-    const uint32_t cyccnt = ccnt_read();
+    const uint32_t t1 = ccnt_read();
     if (first_run) {
         BootEntry();
         entry(main);
@@ -289,7 +289,7 @@ __attribute__((noreturn)) void main(void) {
         receiver_init();
         transmitter_init();
     }
-    TRACE_START_DURATION(t1);
+    // TRACE_START_DURATION(t1);
     ++vspa_core_stats.go_count;
     const uint32_t ctrl = iord(CONTROL);
     TRACE_COUNTER(CNT_TX_DMA_ALLOWED, gpird(1, 1 << 16));
@@ -334,8 +334,9 @@ __attribute__((noreturn)) void main(void) {
     }
 
     push_traces();
+
     TRACE_DURATION(T_BUSY, DEFAULT_THREAD_ID, t1);
 
-    vspa_core_stats.busy_cycles += ccnt_read() - cyccnt;
+    // vspa_core_stats.busy_cycles += ccnt_read() - cyccnt;
     __builtin_done();
 }
