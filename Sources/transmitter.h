@@ -26,7 +26,6 @@ typedef struct TxDDR_lane {
     uint16_t dma_channel;
     uint16_t buffers_consumed;
     uint16_t ready_buffer_offset;
-    bool deffered;
 } tx_ddr_pipeline_t;
 
 typedef struct DAC_lane {
@@ -38,7 +37,10 @@ typedef struct DAC_lane {
     uint16_t count_dmac_complete;
     uint16_t axi_fifo_index;
     uint16_t dma_channel;
-    bool reschedule_start;
+    uint32_t expected_end_phytime; // needed for terminating transmissions without timestamps
+    bool end_scheduled;
+    bool in_progress;
+    bool force_start;
 } dac_pipeline_t;
 
 typedef struct TxPipeline {
@@ -79,7 +81,7 @@ int tx_tone_enable(uint16_t lane, bool enable);
 void host_submitted_tx_tcd(uint16_t lane);
 void tx_check_axiq_status(void);
 
-void deffer_next_tx_burst(uint32_t phytime);
 void tx_deffered_start(void);
+void tx_external_trigger(void);
 
 #endif /* IQMOS_RX_H_ */

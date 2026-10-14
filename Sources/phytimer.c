@@ -20,11 +20,11 @@
 
 /* PHY Timer Comparator flags */
 /* Clear the interrupt notification bit for this comparator */
-#define PHY_TIMER_COMPARATOR_CLEAR_INT BIT(7)
+// #define PHY_TIMER_COMPARATOR_CLEAR_INT BIT(7)
 
 /* Setting this flag disables this comparator. Enabling a comparator
  * is done by configuring it with a trigger value */
-#define PHY_TIMER_COMPARATOR_DISABLE BIT(6)
+// #define PHY_TIMER_COMPARATOR_DISABLE BIT(6)
 
 /* Setting this flag captures the current timer value as the comparator
  * value */
@@ -55,11 +55,17 @@
 //     dmac_clear_complete(PHY_TMR_DMA_CHAN_MASK);
 // }
 
-#define PHY_TMR_SC_ADDR(id) (PHY_TMR_C0SC + (id * 0x8)) // PHY Timer comparator status and control register address.
-#define PHY_TMR_V_ADDR(id) (PHY_TMR_C0V + (id * 0x8)) // PHY Timer comparator status and control register address.
-
 static uint32_t scratch_buf_addrs[10] = { 0 };
 static uint32_t scratch_buf_values[10] = { 0 };
+
+void timer_trig_immediate_async_nocheck(uint32_t id, enum ePhyTimerComparatorTrigger trigger) {
+    scratch_buf_addrs[0] = PHY_TMR_SC_ADDR(id);
+    scratch_buf_values[0] = PHY_TIMER_COMPARATOR_DISABLE | PHY_TIMER_COMPARATOR_CLEAR_INT;
+    scratch_buf_addrs[1] = PHY_TMR_SC_ADDR(id);
+    scratch_buf_values[1] = trigger << 2;
+
+    dmac_enable(DMAC_DI32 | PHY_TMR_DMA_CHAN, 2, VSPA_HALF_WORDS(scratch_buf_addrs), VSPA_HALF_WORDS(scratch_buf_values));
+}
 
 uint32_t timer_trig_immediate_async(uint32_t id, enum ePhyTimerComparatorTrigger trigger) {
     WAIT_TIMEOUT_R(!dmac_is_enabled(PHY_TMR_DMA_CHAN_MASK), VSPA_DEFAULT_TIMEOUT);

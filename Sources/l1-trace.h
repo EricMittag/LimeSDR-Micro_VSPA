@@ -40,6 +40,7 @@ enum {
     T_PHYTIME,
     T_MBOX,
     T_PROXY,
+    T_META,
 };
 
 typedef struct l1_trace_state_s {
@@ -116,7 +117,12 @@ enum {
     CNT_TX_DMA_ALLOWED,
     CNT_PHYTIME,
     CNT_ADC_ENQ,
-    CNT_DAC_ENQ
+    CNT_DAC_ENQ,
+    CNT_DAC_PHYTIME_ADVANCE,
+    CNT_TX_DDR_READY,
+    CNT_DDR_ENQ_ADVANCE,
+    CNT_DDR_CMPL_ADVANCE,
+    CNT_DEFFER,
 };
 
 #if TRACE_ENABLED

@@ -21,8 +21,10 @@
 #include "iqstream_signals.h"
 #include "vspa_iqstream.h"
 #include "phytimer.h"
+#include "proxy_data.h"
 
 extern const vspa_feature_t features_map[];
+
 struct VSPA_Stats vspa_core_stats;
 
 bool first_run = true;
@@ -127,6 +129,8 @@ static void stream_start_now(void) {
     stream_trig_schedule_async(ePhyTimerComparatorOut1, stream_origin_phytime);
 }
 
+extern uint32_t proxy_memory_offset;
+
 uint64_t HandleCommand(uint64_t msg64) {
     const mbox_opc_e op_code = (mbox_opc_e)((HIWORD(msg64) & 0xFF000000) >> 24);
     const uint32_t msg_msb = HIWORD(msg64);
@@ -209,6 +213,9 @@ uint64_t HandleCommand(uint64_t msg64) {
         TRACE_EVENT(T_TRACE_PUSH, DEFAULT_THREAD_ID, 0);
         return (MAKEDWORD(0, lime_Result_Success));
     }
+    case MBOX_OPC_PROXY_OFFSET: {
+        return (MAKEDWORD(0, proxy_set_address(msg_lsb)));
+    }
 
     default:
         // not a valid command, NACK
@@ -272,8 +279,9 @@ inline void ProcessMBox(void) {
 #define GO_REASON_HOST (1 << 0)
 
 void ProcessTxDMA(void) {
-    if (dmac_is_complete(1 << 7))
+    if (dmac_is_complete(1 << 7) || dmac_event(1 << 7))
         tx_ddr_complete(0);
+    tx_check_axiq_status();
     if (dmac_event(1 << 11))
         dac_dma_complete(0);
 }
@@ -299,16 +307,15 @@ __attribute__((noreturn)) void main(void) {
     {
         TRACE_EVENT(T_EXTERNAL_GO, 1, 0);
         ++vspa_core_stats.ext_go_count;
-        tx_deffered_start();
+        tx_external_trigger();
 
-        iowr(EXT_GO_STAT, 0xFF, 0xFF); // clear external GO
+        // iowr(EXT_GO_STAT, 0xFF, 0xFF); // clear external GO
     }
 
     // if (ctrl & GO_REASON_DMA)
     {
         // could check status only on completion, but completion would not get triggered
         // if underrun cause DMA xfer extend past phytimer disable point and get stuck.
-        tx_check_axiq_status();
         if (dmac_is_complete(1 << 13))
             ddr_dma_complete(1);
         if (dmac_is_complete(1 << 12))
@@ -332,6 +339,9 @@ __attribute__((noreturn)) void main(void) {
     if (ctrl & GO_REASON_HOST_VSP_FLAGS) {
         HandleCommandFlags();
     }
+
+    if (proxy_dirty)
+        proxy_post();
 
     push_traces();
 

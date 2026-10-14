@@ -12,6 +12,7 @@
 #include "iqstream_signals.h"
 #include "vspa_iqstream.h"
 #include "phytimer.h"
+#include "proxy_data.h"
 
 #include "axiq-la9310.h"
 #include "vcpu.h"
@@ -80,6 +81,8 @@ static inline void check_adc_axi_status(uint16_t lane) {
     status >>= field_shift;
     if (status & AXIQ_SR_FIELD_ERROVER) {
         ++rx_stats[lane].afe_ovr;
+        ++proxy.rx_ovr;
+        proxy_dirty = true;
     }
     if (status & AXIQ_SR_FIELD_ERRUNDER) {
         ++rx_stats[lane].afe_udr;
@@ -190,6 +193,8 @@ inline static void rx_lane_try_ddr_enqueue(uint16_t lane, const cfixed16_t *buff
     rx_ddr_pipeline_t *const ddr = &rxddr[lane];
     if (!dmac_is_available(1 << ddr->dma_channel)) {
         ++rx_stats[lane].dfe_ovr;
+        ++proxy.rx_ovr;
+        proxy_dirty = true;
         return;
     }
 
@@ -308,6 +313,8 @@ void ddr_dma_complete(uint16_t lane) {
 
     if (meta->flags & PKT_DMA_TCD_END) {
         ++ddr->dma.tcd_table.done;
+        ++proxy.rx_dma_done;
+        proxy_dirty = true;
         vspa_to_host_signal(ddr->dma.vth_tcd_done_flag_mask);
     }
 
