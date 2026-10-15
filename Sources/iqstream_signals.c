@@ -6,9 +6,6 @@
 
 void clear_htv_signal(uint32_t mask) { iowr(HOST_VCPU_FLAGS0, mask); }
 
-extern struct DebugStats2 stats2;
-extern struct PipeStats rx_stats[RX_MAX_LANE_COUNT];
-
 void HandleCommandFlags(void) {
     uint32_t flags = iord(HOST_VCPU_FLAGS0);
     for (int lane = 0; lane < RX_MAX_LANE_COUNT; ++lane) {
@@ -17,7 +14,7 @@ void HandleCommandFlags(void) {
         if (flags & (HTV_SIGNAL_RXLANE0_PRIME << lane))
             rx_lane_prime(lane);
 
-        if (flags & rxddr[lane].dma.htv_tcd_pending_flag_mask) {
+        if (flags & rx_ddr[lane].dma.htv_tcd_pending_flag_mask) {
             host_submitted_rx_tcd(lane);
         }
     }

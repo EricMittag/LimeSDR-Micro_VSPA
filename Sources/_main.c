@@ -24,6 +24,9 @@
 #include "proxy_data.h"
 
 extern const vspa_feature_t features_map[];
+extern void HandleCommandFlags(void);
+extern void proxy_post(void);
+extern void rf_iq_comp_params_init(void);
 
 struct VSPA_Stats vspa_core_stats;
 
@@ -121,12 +124,13 @@ __attribute__((noreturn)) void SwReset(void) __noreturn {
     terminate();
 }
 
-uint32_t stream_origin_phytime = 0;
+uint32_t stream_origin_phyticks = 0;
 
 static void stream_start_now(void) {
     const uint32_t phytime_now = gpird(4); // Phytimer
-    stream_origin_phytime = phytime_now + 256;
-    stream_trig_schedule_async(ePhyTimerComparatorOut1, stream_origin_phytime);
+    stream_origin_phyticks = phytime_now + 256;
+    stream_trig_schedule_async(ePhyTimerComparatorOut1, stream_origin_phyticks);
+    rx_stream_started();
 }
 
 extern uint32_t proxy_memory_offset;
@@ -317,13 +321,13 @@ __attribute__((noreturn)) void main(void) {
         // could check status only on completion, but completion would not get triggered
         // if underrun cause DMA xfer extend past phytimer disable point and get stuck.
         if (dmac_is_complete(1 << 13))
-            ddr_dma_complete(1);
+            rx_ddr_dma_complete(1);
         if (dmac_is_complete(1 << 12))
-            ddr_dma_complete(0);
+            rx_ddr_dma_complete(0);
         ProcessTxDMA();
 
         for (int lane = 0; lane < RX_MAX_LANE_COUNT; ++lane) {
-            if (dmac_event(1 << adc[lane].dma_channel))
+            if (dmac_event(1 << rx_adc[lane].dma_channel))
                 adc_dma_complete(lane);
         }
         // if (compl & (1<<0))

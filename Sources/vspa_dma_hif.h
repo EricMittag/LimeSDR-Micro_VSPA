@@ -3,11 +3,14 @@
 
 // Packet flags
 enum {
-    PKT_HAS_TIMESTAMP = (1 << 0),
-    PKT_START = (1 << 1),
-    PKT_END = (1 << 2),
-    PKT_IRQ = (1 << 3),
-    PKT_DMA_TCD_END = (1 << 4),
+    IQSTREAM_HAS_TIMESTAMP = (1 << 0),
+    IQSTREAM_TRX_START = (1 << 1),
+    IQSTREAM_TRX_END = (1 << 2),
+    IQSTREAM_IRQ = (1 << 3),
+    IQSTREAM_DMA_TCD_END = (1 << 4),
+
+    // TCD was completed early because following samples were lost, size is less than requested.
+    IQSTREAM_TRUNCATED = (1 << 5),
 };
 
 #include <stdint.h>

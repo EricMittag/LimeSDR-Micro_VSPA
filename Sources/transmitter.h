@@ -19,7 +19,6 @@ typedef struct TxBufferMetaData {
 typedef struct TxDDR_lane {
     vspa_dma_hif_t dma_hif;
     cfixed16_t *base_buffer;
-    dma_tcd_fifo_t tcd_table;
     tx_meta_t meta[2];
     uint16_t count_dmac_enque;
     uint16_t count_dmac_complete;
