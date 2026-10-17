@@ -313,9 +313,10 @@ void tx_lane_try_ddr_enqueue(tx_ddr_pipeline_t *ddr, bool vcpu_trig) {
     // It seems that when PLATFORM_CLOCK is <30MHz, DMAC_MBRE can potentially result in
     // DMA getting stuck in running state and never complete. Exact reasons unknown, and
     // the clock limit is rough observation not guarantee.
-
     // uint32_t dma_ctrl = DMAC_MBRE | DMAC_RDC | ddr->dma_channel;
     uint32_t dma_ctrl = DMAC_RDC | ddr->dma_channel;
+    if (int_ratio_pow2[0] == 0)
+        dma_ctrl |= DMAC_MBRE; // if interpolation is not used, we're running at >40Msps, use burst mode.
     if (vcpu_trig)
         dma_ctrl |= DMAC_TRIG_VCPU;
     iowr(DMA_XFR_CTRL, dma_ctrl);
