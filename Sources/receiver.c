@@ -380,6 +380,9 @@ static inline void decimate(uint16_t lane, cfixed16_t *restrict dest, volatile c
     }
 }
 
+// OAI sample scaling (Lime oai branch 80074a0/d0c569e): Rx samples into the 12-bit range
+static const float downscalefactor = 0.0625f;
+
 void adc_dma_complete(uint16_t lane) {
     adc_pipeline_t *const adc = &rx_adc[lane];
     TRACE_START_DURATION(t1);
@@ -404,6 +407,8 @@ void adc_dma_complete(uint16_t lane) {
     adc->phyticks += (ADC_XFER_SAMPLE_COUNT >> adc_clock_divider_disabled[lane]);
 
     // work
+    // downscale into 12bit range
+    rhf_rhf_rsp_vMultiSclr_asm(completed_buffer, completed_buffer, &downscalefactor, ADC_XFER_SIZE_BYTES/DMEM_LINE_SIZE_BYTES);
     rx_ddr_pipeline_t *const ddr = &rx_ddr[lane];
     cfixed16_t *const dest = ddr_next_enq_buffer(ddr);
     TRACE_START_DURATION(t2);
