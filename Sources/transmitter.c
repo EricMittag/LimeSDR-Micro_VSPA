@@ -344,6 +344,9 @@ inline static void dac_enque(dac_pipeline_t *dac, cfixed16_t *buffer, uint32_t e
     TRACE_DURATION(T_DAC_ENQ, DEFAULT_THREAD_ID, t1);
 }
 
+// OAI sample scaling (Lime oai branch 80074a0/d0c569e); not for the calibration tone, which is generated at DAC scale
+static const float upscalefactor = 16.0f;
+
 static inline void interpol(cfixed16_t *dest, cfixed16_t *src, cfixed16_t *history, uint16_t src_count) {
     uint16_t lane = 0;
     switch (int_ratio_pow2[lane]) {
@@ -432,6 +435,8 @@ static void ddr_to_dac_work(uint16_t lane) {
 
         // qec inplace
         tx_qec_correction(dac_dest, dac_dest, DAC_XFER_SAMPLE_COUNT);
+        if (!txpipe[lane].generate_tone)
+            rhf_rhf_rsp_vMultiSclr_asm(dac_dest, dac_dest, &upscalefactor, DAC_XFER_SIZE_BYTES/DMEM_LINE_SIZE_BYTES);
         ddr_meta->phytime += DAC_XFER_SAMPLE_COUNT;
         dac_meta->flags &= ~IQSTREAM_TRX_END;
         TRACE_DURATION(T_TX_WORK, DEFAULT_THREAD_ID, t1);
@@ -447,6 +452,8 @@ static void ddr_to_dac_work(uint16_t lane) {
         if (txpipe[lane].generate_tone)
             gen_nco_single_tone(ddr_src, DDR_XFER_SAMPLE_COUNT, &tx_tone_state[lane]);
         tx_qec_correction(dac_dest, ddr_src, DAC_XFER_SAMPLE_COUNT);
+        if (!txpipe[lane].generate_tone)
+            rhf_rhf_rsp_vMultiSclr_asm(dac_dest, dac_dest, &upscalefactor, DAC_XFER_SIZE_BYTES/DMEM_LINE_SIZE_BYTES);
         TRACE_DURATION(T_TX_WORK, DEFAULT_THREAD_ID, t1);
         ++ddr->buffers_consumed;
         TRACE_COUNTER(CNT_TX_DDR_READY, ddr_buffers_ready(ddr));
